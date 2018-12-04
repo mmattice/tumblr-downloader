@@ -108,12 +108,18 @@ func GetGfycatURL(slug string) string {
 	gfyData, err := ioutil.ReadAll(resp.Body)
 	checkFatalError(err)
 
-	var gfy Gfy
+	var ret string;
+	if string(gfyData) != "Not Found" {
+		var gfy Gfy
 
-	err = json.Unmarshal(gfyData, &gfy)
-	checkFatalError(err, "Gfycat Unmarshal:")
+		err = json.Unmarshal(gfyData, &gfy)
+		checkFatalError(err, "Gfycat Unmarshal:", string(gfyData))
+		ret = gfy.GfyItem.Mp4Url
+	} else {
+		ret = ""
+	}
 
-	return gfy.GfyItem.Mp4Url
+	return ret
 }
 
 func getGfycatFiles(b, slug string) []File {
@@ -121,11 +127,14 @@ func getGfycatFiles(b, slug string) []File {
 	regexResult := gfycatSearch.FindStringSubmatch(b)
 	if regexResult != nil {
 		for i, v := range regexResult[1:] {
-			gfyFile := newFile(GetGfycatURL(v))
-			if slug != "" {
-				gfyFile.Filename = fmt.Sprintf("%s_gfycat_%02d.mp4", slug, i+1)
+			var url = GetGfycatURL(v)
+			if url != "" {
+				gfyFile := newFile(url)
+				if slug != "" {
+					gfyFile.Filename = fmt.Sprintf("%s_gfycat_%02d.mp4", slug, i+1)
+				}
+				files = append(files, gfyFile)
 			}
-			files = append(files, gfyFile)
 		}
 	}
 	return files
